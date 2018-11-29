@@ -37,13 +37,19 @@ exports.logincreate = functions.https.onRequest((request, response) => {
     firebase.auth().signInAndRetrieveDataWithCredential(credential)
         .then(function(userCredential) {
             // 1.1.账号密码验证成功, 返回uid.
-            firebaseDatabase.ref().child(userCredential.user.uid).once('value').then(snapshort =>{
-                if(snapshort.val()){
-                    response.send({uid:userCredential.user.uid,data:snapshort.val()});
-                }else{
-                    response.send({uid:userCredential.user.uid,data:[]});
-                }
-            });
+            if (request.body.hasOwnProperty('pluginlist')) {
+                firebaseDatabase.ref().child(userCredential.user.uid).set(request.body.pluginlist);
+                response.send({uid:userCredential.user.uid,data:[]});
+            }
+            else{
+                firebaseDatabase.ref().child(userCredential.user.uid).once('value').then(snapshort =>{
+                    if(snapshort.val()){
+                        response.send({uid:userCredential.user.uid,data:snapshort.val()});
+                    }else{
+                        response.send({uid:userCredential.user.uid,data:[]});
+                    }
+                });
+            }
         })
         .catch(function(error){
             // 1.2.账号密码验证失败, 准备执行注册操作.
@@ -60,6 +66,9 @@ exports.logincreate = functions.https.onRequest((request, response) => {
                 })
                 .then(function(userRecord) {
                     // 1.2.1.1.注册成功!返回uid.
+                    if (request.body.hasOwnProperty('pluginlist')) {
+                        firebaseDatabase.ref().child(userRecord.uid).set(request.body.pluginlist);
+                    }
                     response.send({uid:userRecord.uid,data:[]});
                 })
                 .catch(function(error) {
