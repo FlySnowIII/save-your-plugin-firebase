@@ -35,11 +35,15 @@ exports.logincreate = functions.https.onRequest((request, response) => {
     var credential = firebase.auth.EmailAuthProvider.credential(request.body.email, request.body.password);
     // 1.模拟登录
     firebase.auth().signInAndRetrieveDataWithCredential(credential)
-        .then(async function(userCredential) {
+        .then(function(userCredential) {
             // 1.1.账号密码验证成功, 返回uid.
-            var returnObj =await getFirebaseDB(userCredential.user.uid);
-            response.send(returnObj);
-
+            firebaseDatabase.ref().child(userCredential.user.uid).once('value').then(snapshort =>{
+                if(snapshort.val()){
+                    response.send({uid:userCredential.user.uid,data:snapshort.val()});
+                }else{
+                    response.send({uid:userCredential.user.uid,data:[]});
+                }
+            });
         })
         .catch(function(error){
             // 1.2.账号密码验证失败, 准备执行注册操作.
@@ -56,7 +60,7 @@ exports.logincreate = functions.https.onRequest((request, response) => {
                 })
                 .then(function(userRecord) {
                     // 1.2.1.1.注册成功!返回uid.
-                    response.send({uid:userRecord.uid});
+                    response.send({uid:userRecord.uid,data:[]});
                 })
                 .catch(function(error) {
                     // 1.2.1.2.注册失败.返回错误对象.
@@ -70,22 +74,6 @@ exports.logincreate = functions.https.onRequest((request, response) => {
         });
 });
 
-async function getFirebaseDB(uid){
-    try {
-        var snapshort = await firebaseDatabase.ref().child(uid).once('value');
-        if(snapshort.val()){
-            return snapshort.val();
-        }else{
-            return [];
-        }
-
-    } catch (error) {
-        config.log("getFirebaseDB:",error);
-        return error;
-    }
-
-
-}
 
 /**
  * Firebase RealtimeDatabase Upload
